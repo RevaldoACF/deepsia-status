@@ -85,44 +85,72 @@
           <h2 id="services-heading" class="section-title">Services</h2>
           <ul id="services-list" class="services-list">
             <li class="service-row" data-slug="api">
-              <div class="service-info">
-                <span class="service-name">API</span>
-                <a
-                  href="https://api.deepsia.my.id/health"
-                  class="service-host"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >api.deepsia.my.id</a
-                >
+              <div class="service-head">
+                <div class="service-info">
+                  <span class="service-name">API</span>
+                  <a
+                    href="https://api.deepsia.my.id/health"
+                    class="service-host"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >api.deepsia.my.id</a
+                  >
+                </div>
+                <div class="service-metrics">
+                  <span class="metric-latency" data-latency>—</span>
+                  <span class="status-pill" data-state="loading">
+                    <span class="pill-icon" aria-hidden="true"></span>
+                    <span class="pill-text">Checking</span>
+                  </span>
+                </div>
               </div>
-              <div class="service-metrics">
-                <span class="metric-uptime" data-uptime>—</span>
-                <span class="metric-latency" data-latency>—</span>
-                <span class="status-pill" data-state="loading">
-                  <span class="pill-icon" aria-hidden="true"></span>
-                  <span class="pill-text">Checking</span>
-                </span>
+              <div class="uptime-track">
+                <div
+                  class="uptime-bars"
+                  data-bars
+                  role="list"
+                  aria-label="API 60-day uptime history"
+                ></div>
+                <div class="uptime-legend">
+                  <span>60 days ago</span>
+                  <span class="metric-uptime" data-uptime>—</span>
+                  <span>Today</span>
+                </div>
               </div>
             </li>
 
             <li class="service-row" data-slug="chat">
-              <div class="service-info">
-                <span class="service-name">DeepChat</span>
-                <a
-                  href="https://chat.deepsia.my.id"
-                  class="service-host"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >chat.deepsia.my.id</a
-                >
+              <div class="service-head">
+                <div class="service-info">
+                  <span class="service-name">DeepChat</span>
+                  <a
+                    href="https://chat.deepsia.my.id"
+                    class="service-host"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >chat.deepsia.my.id</a
+                  >
+                </div>
+                <div class="service-metrics">
+                  <span class="metric-latency" data-latency>—</span>
+                  <span class="status-pill" data-state="loading">
+                    <span class="pill-icon" aria-hidden="true"></span>
+                    <span class="pill-text">Checking</span>
+                  </span>
+                </div>
               </div>
-              <div class="service-metrics">
-                <span class="metric-uptime" data-uptime>—</span>
-                <span class="metric-latency" data-latency>—</span>
-                <span class="status-pill" data-state="loading">
-                  <span class="pill-icon" aria-hidden="true"></span>
-                  <span class="pill-text">Checking</span>
-                </span>
+              <div class="uptime-track">
+                <div
+                  class="uptime-bars"
+                  data-bars
+                  role="list"
+                  aria-label="DeepChat 60-day uptime history"
+                ></div>
+                <div class="uptime-legend">
+                  <span>60 days ago</span>
+                  <span class="metric-uptime" data-uptime>—</span>
+                  <span>Today</span>
+                </div>
               </div>
             </li>
           </ul>
@@ -143,14 +171,10 @@
 
       <footer class="site-footer anim-item">
         <span>Deepsia Status</span>
-        <a
-          href="https://github.com/RevaldoACF/deepsia-status"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="footer-link"
-          >Upptime Monitor</a
-        >
+        <span>Updated every 5 min</span>
       </footer>
     </div>
+
+    <div id="bar-tooltip" class="bar-tooltip" role="tooltip" hidden></div>
   </body>
 </html>

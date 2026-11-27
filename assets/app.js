@@ -1,7 +1,8 @@
 const REPO_OWNER = "RevaldoACF";
 const REPO_NAME = "deepsia-status";
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main`;
-const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=all&per_page=8`;
+const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=all&per_page=20`;
+const HISTORY_DAYS = 60;
 
 const SERVICES = [
   { slug: "api", name: "API" },
@@ -39,6 +40,21 @@ async function fetchWithFallback(path, parseAs = "json") {
   return null;
 }
 
+function toUtcDateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatShortDate(dateKey) {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function formatRelativeTime(isoString) {
   if (!isoString) return "Recently";
   const date = new Date(isoString);
@@ -60,10 +76,7 @@ function classifyIssue(issue) {
   const labels = (issue.labels || []).map((l) => l.name.toLowerCase());
   const titleLower = (issue.title || "").toLowerCase();
 
-  if (
-    labels.includes("maintenance") ||
-    titleLower.includes("maintenance")
-  ) {
+  if (labels.includes("maintenance") || titleLower.includes("maintenance")) {
     return "maintenance";
   }
   if (
@@ -87,6 +100,111 @@ function issueAffectsService(issue, slug, name) {
   );
 }
 
+function issueActiveOnDate(issue, dateKey) {
+  const startKey = issue.created_at?.slice(0, 10);
+  const endKey =
+    issue.state === "closed" && issue.closed_at
+      ? issue.closed_at.slice(0, 10)
+      : toUtcDateKey(new Date());
+  return Boolean(startKey && dateKey >= startKey && dateKey <= endKey);
+}
+
+function showTooltip(target, text) {
+  const tip = document.getElementById("bar-tooltip");
+  if (!tip) return;
+  const rect = target.getBoundingClientRect();
+  tip.textContent = text;
+  tip.style.left = `${rect.left + rect.width / 2}px`;
+  tip.style.top = `${rect.top - 8}px`;
+  tip.hidden = false;
+}
+
+function hideTooltip() {
+  const tip = document.getElementById("bar-tooltip");
+  if (tip) tip.hidden = true;
+}
+
+function renderServiceBars({
+  slug,
+  name,
+  startDateKey,
+  dailyMinutesDown,
+  currentState,
+  issues,
+}) {
+  const row = document.querySelector(`.service-row[data-slug="${slug}"]`);
+  const container = row?.querySelector("[data-bars]");
+  if (!container) return;
+
+  container.innerHTML = "";
+  const today = new Date();
+  const todayKey = toUtcDateKey(today);
+  const maintIssues = (issues || []).filter(
+    (i) =>
+      !i.pull_request &&
+      classifyIssue(i) === "maintenance" &&
+      issueAffectsService(i, slug, name)
+  );
+
+  for (let offset = HISTORY_DAYS - 1; offset >= 0; offset--) {
+    const d = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate() - offset
+      )
+    );
+    const dateKey = toUtcDateKey(d);
+    const labelDate = formatShortDate(dateKey);
+
+    let barState = "none";
+    let detail = "No data";
+
+    if (startDateKey && dateKey >= startDateKey) {
+      const minutesDown = Number(dailyMinutesDown?.[dateKey] || 0);
+      const hasMaint = maintIssues.some((issue) =>
+        issueActiveOnDate(issue, dateKey)
+      );
+
+      if (dateKey === todayKey && currentState === "down") {
+        barState = "down";
+        detail =
+          minutesDown > 0 ? `Down (${minutesDown}m)` : "Service disruption";
+      } else if (dateKey === todayKey && currentState === "maintenance") {
+        barState = "maintenance";
+        detail = "Scheduled maintenance";
+      } else if (minutesDown >= 30) {
+        barState = "down";
+        detail = `Major outage (${minutesDown}m down)`;
+      } else if (minutesDown > 0) {
+        barState = "degraded";
+        detail = `Partial outage (${minutesDown}m down)`;
+      } else if (hasMaint) {
+        barState = "maintenance";
+        detail = "Scheduled maintenance";
+      } else {
+        barState = "operational";
+        detail = "Operational";
+      }
+    }
+
+    const bar = document.createElement("button");
+    bar.type = "button";
+    bar.className = "uptime-bar";
+    bar.dataset.state = barState;
+    bar.setAttribute("role", "listitem");
+    bar.setAttribute("aria-label", `${labelDate}: ${detail}`);
+
+    const tooltipText = `${labelDate} · ${detail}`;
+    bar.addEventListener("mouseenter", () => showTooltip(bar, tooltipText));
+    bar.addEventListener("mouseleave", hideTooltip);
+    bar.addEventListener("focus", () => showTooltip(bar, tooltipText));
+    bar.addEventListener("blur", hideTooltip);
+
+    container.appendChild(bar);
+  }
+}
+
 function updateServiceRow(slug, state, uptimeText, latencyText) {
   const row = document.querySelector(`.service-row[data-slug="${slug}"]`);
   if (!row) return;
@@ -96,7 +214,7 @@ function updateServiceRow(slug, state, uptimeText, latencyText) {
   const pillEl = row.querySelector(".status-pill");
   const pillText = row.querySelector(".pill-text");
 
-  if (uptimeEl && uptimeText) uptimeEl.textContent = uptimeText;
+  if (uptimeEl && uptimeText) uptimeEl.textContent = `${uptimeText} uptime`;
   if (latencyEl && latencyText) latencyEl.textContent = latencyText;
 
   const labelMap = {
@@ -209,7 +327,10 @@ async function initStatusPage() {
   ]);
 
   const openMaintenanceIssues = (issues || []).filter(
-    (i) => !i.pull_request && i.state === "open" && classifyIssue(i) === "maintenance"
+    (i) =>
+      !i.pull_request &&
+      i.state === "open" &&
+      classifyIssue(i) === "maintenance"
   );
 
   let latestTimestamp = null;
@@ -239,7 +360,13 @@ async function initStatusPage() {
     const latencyMs = yamlData?.responseTime ?? summaryItem?.time;
     const latencyText =
       latencyMs !== undefined && latencyMs !== null ? `${latencyMs} ms` : "—";
-    const uptimeText = summaryItem?.uptimeMonth || summaryItem?.uptime || "100%";
+    const uptimeText =
+      summaryItem?.uptimeMonth || summaryItem?.uptime || "100.00%";
+
+    const startDateKey =
+      yamlData?.startTime?.slice(0, 10) ||
+      yamlData?.lastUpdated?.slice(0, 10) ||
+      toUtcDateKey(new Date());
 
     if (yamlData?.lastUpdated) {
       if (!latestTimestamp || yamlData.lastUpdated > latestTimestamp) {
@@ -248,6 +375,14 @@ async function initStatusPage() {
     }
 
     updateServiceRow(svc.slug, state, uptimeText, latencyText);
+    renderServiceBars({
+      slug: svc.slug,
+      name: svc.name,
+      startDateKey,
+      dailyMinutesDown: summaryItem?.dailyMinutesDown || {},
+      currentState: state,
+      issues,
+    });
   });
 
   if (hasDown) {

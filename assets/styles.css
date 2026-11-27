@@ -16,20 +16,23 @@
   --dc-text-muted-light: #52525b;
   --dc-text-muted-dark: #a1a1aa;
 
-  --status-up-light: #15803d;
-  --status-up-dark: #4ade80;
-  --status-up-bg-light: #f0fdf4;
-  --status-up-bg-dark: rgba(74, 222, 128, 0.12);
+  --status-up-light: #10b981;
+  --status-up-dark: #34d399;
+  --status-up-bg-light: #ecfdf5;
+  --status-up-bg-dark: rgba(52, 211, 153, 0.12);
 
-  --status-maint-light: #b45309;
+  --status-maint-light: #d97706;
   --status-maint-dark: #fbbf24;
   --status-maint-bg-light: #fffbeb;
   --status-maint-bg-dark: rgba(251, 191, 36, 0.12);
 
-  --status-down-light: #b91c1c;
+  --status-down-light: #ef4444;
   --status-down-dark: #f87171;
   --status-down-bg-light: #fef2f2;
   --status-down-bg-dark: rgba(248, 113, 113, 0.12);
+
+  --bar-empty-light: #e5e7eb;
+  --bar-empty-dark: rgba(255, 255, 255, 0.1);
 
   --dc-canvas: var(--dc-canvas-light);
   --dc-panel: var(--dc-panel-light);
@@ -45,6 +48,7 @@
   --status-maint-bg: var(--status-maint-bg-light);
   --status-down: var(--status-down-light);
   --status-down-bg: var(--status-down-bg-light);
+  --bar-empty: var(--bar-empty-light);
 
   @media (prefers-color-scheme: dark) {
     --dc-canvas: var(--dc-canvas-dark);
@@ -61,6 +65,7 @@
     --status-maint-bg: var(--status-maint-bg-dark);
     --status-down: var(--status-down-dark);
     --status-down-bg: var(--status-down-bg-dark);
+    --bar-empty: var(--bar-empty-dark);
   }
 
   @supports (color: light-dark(white, black)) {
@@ -99,6 +104,7 @@
       var(--status-down-bg-light),
       var(--status-down-bg-dark)
     );
+    --bar-empty: light-dark(var(--bar-empty-light), var(--bar-empty-dark));
   }
 }
 
@@ -344,14 +350,87 @@ main {
 
 .service-row {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.service-head {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px;
 }
 
 .service-row + .service-row {
   border-top: 1px solid var(--dc-border);
+}
+
+.uptime-track {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.uptime-bars {
+  display: grid;
+  grid-template-columns: repeat(60, minmax(0, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.uptime-bar {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  height: 26px;
+  width: 100%;
+  border-radius: 3px;
+  background-color: var(--bar-empty);
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.uptime-bar:hover,
+.uptime-bar:focus-visible {
+  transform: scaleY(1.14);
+}
+
+.uptime-bar[data-state="operational"] {
+  background-color: var(--status-up);
+}
+
+.uptime-bar[data-state="maintenance"],
+.uptime-bar[data-state="degraded"] {
+  background-color: var(--status-maint);
+}
+
+.uptime-bar[data-state="down"] {
+  background-color: var(--status-down);
+}
+
+.uptime-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--dc-text-muted);
+}
+
+.bar-tooltip {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background-color: var(--dc-text-strong);
+  color: var(--dc-canvas);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  transform: translate(-50%, -100%);
 }
 
 .service-info {
@@ -537,15 +616,18 @@ main {
     gap: 28px;
   }
 
-  .service-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .service-head {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .service-metrics {
-    width: 100%;
-    justify-content: space-between;
+  .uptime-bars {
+    gap: 2px;
+  }
+
+  .uptime-bar {
+    height: 22px;
+    border-radius: 2px;
   }
 }
 

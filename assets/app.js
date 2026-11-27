@@ -2,6 +2,7 @@ const REPO_OWNER = "RevaldoACF";
 const REPO_NAME = "deepsia-status";
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main`;
 const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=all&per_page=30`;
+const RUNS_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/uptime.yml/runs?per_page=1&status=completed`;
 const HISTORY_DAYS = 60;
 
 const SERVICES = [
@@ -517,11 +518,15 @@ async function initStatusPage() {
     }
   });
 
-  const [summary, issues, ...historyDocs] = await Promise.all([
+  const [summary, issues, latestRun, ...historyDocs] = await Promise.all([
     fetchWithFallback("history/summary.json", "json"),
     fetch(ISSUES_API, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
       .catch(() => []),
+    fetch(RUNS_API, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data?.workflow_runs?.[0]?.updated_at || null)
+      .catch(() => null),
     ...SERVICES.map((s) => fetchWithFallback(`history/${s.slug}.yml`, "text")),
   ]);
 
@@ -534,7 +539,7 @@ async function initStatusPage() {
       classifyIssue(i) === "maintenance"
   );
 
-  let latestTimestamp = null;
+  let latestTimestamp = latestRun || null;
   let hasDown = false;
   let hasMaintenance = openMaintenanceIssues.length > 0;
 

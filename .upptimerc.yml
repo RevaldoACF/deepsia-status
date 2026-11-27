@@ -1,0 +1,26 @@
+owner: RevaldoACF
+repo: deepsia-status
+
+sites:
+  - name: API
+    slug: api
+    url: https://api.deepsia.my.id/health
+    method: GET
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 5000
+  - name: DeepChat
+    slug: chat
+    url: https://chat.deepsia.my.id
+    method: GET
+    expectedStatusCodes:
+      - 200
+    maxResponseTime: 5000
+
+assignees:
+  - RevaldoACF
+
+workflowSchedule:
+  uptime: "*/5 * * * *"
+  responseTime: "0 0 * * *"
+  summary: "0 0 * * *"

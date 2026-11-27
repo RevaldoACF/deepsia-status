@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Real-time operational status and uptime for Deepsia services."
+    />
+    <title>Status | Deepsia</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/deepsia-mark.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"
+      defer
+    ></script>
+    <script src="./assets/app.js" defer></script>
+  </head>
+  <body>
+    <a href="#main-heading" class="skip-link visually-hidden"
+      >Skip to status overview</a
+    >
+
+    <div class="shell">
+      <header class="site-header anim-item">
+        <a href="https://deepsia.my.id" class="brand" aria-label="Deepsia home">
+          <svg
+            class="brand-mark"
+            viewBox="0 0 512 512"
+            fill="none"
+            aria-hidden="true"
+          >
+            <g fill="currentColor">
+              <path
+                d="M 98 202 L 98 176 C 98 164 104 153 115 147 L 236 77 C 248 70 264 70 276 77 L 342 115 C 346 118 348 122 348 127 L 348 214 L 224 142 C 214 136 202 136 192 142 L 114 187 C 104 193 98 197 98 202 Z"
+              />
+              <path
+                d="M 164 385 L 115 357 C 104 351 98 340 98 328 L 98 258 C 98 245 105 234 116 228 L 245 164 L 276 182 L 164 242 Z"
+              />
+            </g>
+            <g fill="currentColor" transform="rotate(180 256 256)">
+              <path
+                d="M 98 202 L 98 176 C 98 164 104 153 115 147 L 236 77 C 248 70 264 70 276 77 L 342 115 C 346 118 348 122 348 127 L 348 214 L 224 142 C 214 136 202 136 192 142 L 114 187 C 104 193 98 197 98 202 Z"
+              />
+              <path
+                d="M 164 385 L 115 357 C 104 351 98 340 98 328 L 98 258 C 98 245 105 234 116 228 L 245 164 L 276 182 L 164 242 Z"
+              />
+            </g>
+          </svg>
+          <span class="brand-name">Deepsia</span>
+        </a>
+
+        <nav aria-label="Primary" class="header-nav">
+          <a href="https://deepsia.my.id" class="nav-link">deepsia.my.id</a>
+        </nav>
+      </header>
+
+      <main>
+        <section
+          class="overview-card anim-item"
+          data-state="loading"
+          aria-live="polite"
+        >
+          <div class="overview-top">
+            <span class="status-indicator" aria-hidden="true">
+              <span class="status-dot"></span>
+            </span>
+            <h1 id="main-heading" tabindex="-1" class="overview-title">
+              Checking system status…
+            </h1>
+          </div>
+          <p class="overview-meta">
+            <span id="last-updated">Syncing latest telemetry</span>
+          </p>
+        </section>
+
+        <section aria-labelledby="services-heading" class="section anim-item">
+          <h2 id="services-heading" class="section-title">Services</h2>
+          <ul id="services-list" class="services-list">
+            <li class="service-row" data-slug="api">
+              <div class="service-info">
+                <span class="service-name">API</span>
+                <a
+                  href="https://api.deepsia.my.id/health"
+                  class="service-host"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >api.deepsia.my.id</a
+                >
+              </div>
+              <div class="service-metrics">
+                <span class="metric-uptime" data-uptime>—</span>
+                <span class="metric-latency" data-latency>—</span>
+                <span class="status-pill" data-state="loading">
+                  <span class="pill-icon" aria-hidden="true"></span>
+                  <span class="pill-text">Checking</span>
+                </span>
+              </div>
+            </li>
+
+            <li class="service-row" data-slug="chat">
+              <div class="service-info">
+                <span class="service-name">DeepChat</span>
+                <a
+                  href="https://chat.deepsia.my.id"
+                  class="service-host"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >chat.deepsia.my.id</a
+                >
+              </div>
+              <div class="service-metrics">
+                <span class="metric-uptime" data-uptime>—</span>
+                <span class="metric-latency" data-latency>—</span>
+                <span class="status-pill" data-state="loading">
+                  <span class="pill-icon" aria-hidden="true"></span>
+                  <span class="pill-text">Checking</span>
+                </span>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section
+          id="incidents-section"
+          aria-labelledby="incidents-heading"
+          class="section anim-item"
+          hidden
+        >
+          <h2 id="incidents-heading" class="section-title">
+            Incidents &amp; Maintenance
+          </h2>
+          <ul id="incidents-list" class="incidents-list"></ul>
+        </section>
+      </main>
+
+      <footer class="site-footer anim-item">
+        <span>Deepsia Status</span>
+        <a
+          href="https://github.com/RevaldoACF/deepsia-status"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="footer-link"
+          >Upptime Monitor</a
+        >
+      </footer>
+    </div>
+  </body>
+</html>

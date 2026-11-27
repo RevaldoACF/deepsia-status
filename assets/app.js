@@ -1,13 +1,17 @@
 const REPO_OWNER = "RevaldoACF";
 const REPO_NAME = "deepsia-status";
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main`;
-const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=all&per_page=20`;
+const ISSUES_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues?state=all&per_page=30`;
 const HISTORY_DAYS = 60;
 
 const SERVICES = [
   { slug: "api", name: "API" },
   { slug: "chat", name: "DeepChat" },
 ];
+
+let windowOffset = 0;
+let cachedServicesState = [];
+let cachedIssues = [];
 
 /**
  * Parse simple Upptime flat YAML key-value files.
@@ -48,11 +52,26 @@ function formatShortDate(dateKey) {
   const [y, m, d] = dateKey.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   return date.toLocaleDateString(undefined, {
-    month: "short",
     day: "numeric",
+    month: "short",
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+function formatMonthYear(date) {
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function formatDuration(minutes) {
+  if (!minutes || minutes <= 0) return "";
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hrs} hrs ${mins} mins`;
 }
 
 function formatRelativeTime(isoString) {
@@ -135,7 +154,9 @@ function issueAffectsService(issue, slug, name) {
     return /\bapi\b/.test(title) || title.includes("api.deepsia.my.id");
   }
   if (slug === "chat") {
-    return /\b(chat|deepchat)\b/.test(title) || title.includes("chat.deepsia.my.id");
+    return (
+      /\b(chat|deepchat)\b/.test(title) || title.includes("chat.deepsia.my.id")
+    );
   }
   return title.includes(name.toLowerCase());
 }
@@ -149,19 +170,88 @@ function issueActiveOnDate(issue, dateKey) {
   return Boolean(startKey && dateKey >= startKey && dateKey <= endKey);
 }
 
-function showTooltip(target, text) {
-  const tip = document.getElementById("bar-tooltip");
-  if (!tip) return;
+function showPopover(target, info) {
+  const popover = document.getElementById("bar-popover");
+  const dateEl = document.getElementById("popover-date");
+  const boxEl = document.getElementById("popover-status-box");
+  const statusEl = document.getElementById("popover-status-text");
+  const durationEl = document.getElementById("popover-duration");
+  const relatedWrap = document.getElementById("popover-related");
+  const relatedList = document.getElementById("popover-related-list");
+
+  if (!popover || !dateEl || !boxEl || !statusEl || !durationEl) return;
+
+  dateEl.textContent = info.labelDate;
+  boxEl.dataset.state = info.barState;
+  statusEl.textContent = info.statusLabel;
+  durationEl.textContent = info.durationText || "";
+
+  if (relatedWrap && relatedList) {
+    relatedList.innerHTML = "";
+    if (info.relatedTitles.length > 0) {
+      for (const title of info.relatedTitles) {
+        const li = document.createElement("li");
+        li.textContent = title;
+        relatedList.appendChild(li);
+      }
+      relatedWrap.hidden = false;
+    } else {
+      relatedWrap.hidden = true;
+    }
+  }
+
+  popover.hidden = false;
+
   const rect = target.getBoundingClientRect();
-  tip.textContent = text;
-  tip.style.left = `${rect.left + rect.width / 2}px`;
-  tip.style.top = `${rect.top - 8}px`;
-  tip.hidden = false;
+  const popRect = popover.getBoundingClientRect();
+  const margin = 12;
+  const centerX = rect.left + rect.width / 2;
+  const clampedLeft = Math.max(
+    margin,
+    Math.min(centerX - popRect.width / 2, window.innerWidth - popRect.width - margin)
+  );
+  const arrowX = Math.max(16, Math.min(centerX - clampedLeft, popRect.width - 16));
+
+  popover.style.left = `${clampedLeft}px`;
+  popover.style.top = `${rect.bottom + 10}px`;
+  popover.style.setProperty("--arrow-x", `${arrowX}px`);
 }
 
-function hideTooltip() {
-  const tip = document.getElementById("bar-tooltip");
-  if (tip) tip.hidden = true;
+function hidePopover() {
+  const popover = document.getElementById("bar-popover");
+  if (popover) popover.hidden = true;
+}
+
+function getWindowDates(offsetWindows) {
+  const now = new Date();
+  const endOffsetDays = offsetWindows * HISTORY_DAYS;
+  const endDate = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - endOffsetDays
+    )
+  );
+  const startDate = new Date(
+    Date.UTC(
+      endDate.getUTCFullYear(),
+      endDate.getUTCMonth(),
+      endDate.getUTCDate() - (HISTORY_DAYS - 1)
+    )
+  );
+  return { startDate, endDate };
+}
+
+function updateRangeControls() {
+  const { startDate, endDate } = getWindowDates(windowOffset);
+  const rangeLabel = document.getElementById("range-label");
+  const nextBtn = document.getElementById("range-next");
+  if (rangeLabel) {
+    rangeLabel.textContent = `${formatMonthYear(startDate)} – ${formatMonthYear(endDate)}`;
+  }
+  if (nextBtn) {
+    nextBtn.disabled = windowOffset === 0;
+  }
 }
 
 function renderServiceBars({
@@ -174,57 +264,77 @@ function renderServiceBars({
 }) {
   const row = document.querySelector(`.service-row[data-slug="${slug}"]`);
   const container = row?.querySelector("[data-bars]");
+  const legendStart = row?.querySelector(".uptime-legend span:first-child");
+  const legendEnd = row?.querySelector(".uptime-legend span:last-child");
   if (!container) return;
 
   container.innerHTML = "";
-  const today = new Date();
-  const todayKey = toUtcDateKey(today);
-  const maintIssues = (issues || []).filter(
+  const { startDate, endDate } = getWindowDates(windowOffset);
+  const todayKey = toUtcDateKey(new Date());
+
+  if (legendStart) {
+    legendStart.textContent =
+      windowOffset === 0 ? "60 days ago" : formatShortDate(toUtcDateKey(startDate));
+  }
+  if (legendEnd) {
+    legendEnd.textContent =
+      windowOffset === 0 ? "Today" : formatShortDate(toUtcDateKey(endDate));
+  }
+
+  const serviceIssues = (issues || []).filter(
     (i) =>
       !i.pull_request &&
-      classifyIssue(i) === "maintenance" &&
+      classifyIssue(i) !== null &&
       issueAffectsService(i, slug, name)
   );
 
-  for (let offset = HISTORY_DAYS - 1; offset >= 0; offset--) {
+  for (let i = 0; i < HISTORY_DAYS; i++) {
     const d = new Date(
       Date.UTC(
-        today.getUTCFullYear(),
-        today.getUTCMonth(),
-        today.getUTCDate() - offset
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate() + i
       )
     );
     const dateKey = toUtcDateKey(d);
     const labelDate = formatShortDate(dateKey);
 
     let barState = "none";
-    let detail = "No data";
+    let statusLabel = "No data";
+    let durationText = "";
+    let relatedTitles = [];
 
     if (startDateKey && dateKey >= startDateKey) {
       const minutesDown = Number(dailyMinutesDown?.[dateKey] || 0);
-      const hasMaint = maintIssues.some((issue) =>
+      const dayIssues = serviceIssues.filter((issue) =>
         issueActiveOnDate(issue, dateKey)
+      );
+      relatedTitles = dayIssues.map((issue) => issue.title);
+      const hasMaint = dayIssues.some(
+        (issue) => classifyIssue(issue) === "maintenance"
       );
 
       if (dateKey === todayKey && currentState === "down") {
         barState = "down";
-        detail =
-          minutesDown > 0 ? `Down (${minutesDown}m)` : "Service disruption";
+        statusLabel = "Major outage";
+        durationText = formatDuration(minutesDown);
       } else if (dateKey === todayKey && currentState === "maintenance") {
         barState = "maintenance";
-        detail = "Scheduled maintenance";
+        statusLabel = "Maintenance";
       } else if (minutesDown >= 30) {
         barState = "down";
-        detail = `Major outage (${minutesDown}m down)`;
+        statusLabel = "Major outage";
+        durationText = formatDuration(minutesDown);
       } else if (minutesDown > 0) {
         barState = "degraded";
-        detail = `Partial outage (${minutesDown}m down)`;
+        statusLabel = "Partial outage";
+        durationText = formatDuration(minutesDown);
       } else if (hasMaint) {
         barState = "maintenance";
-        detail = "Scheduled maintenance";
+        statusLabel = "Maintenance";
       } else {
         barState = "operational";
-        detail = "Operational";
+        statusLabel = "Operational";
       }
     }
 
@@ -233,15 +343,29 @@ function renderServiceBars({
     bar.className = "uptime-bar";
     bar.dataset.state = barState;
     bar.setAttribute("role", "listitem");
-    bar.setAttribute("aria-label", `${labelDate}: ${detail}`);
+    bar.setAttribute(
+      "aria-label",
+      `${labelDate}: ${statusLabel}${durationText ? ` (${durationText})` : ""}`
+    );
 
-    const tooltipText = `${labelDate} · ${detail}`;
-    bar.addEventListener("mouseenter", () => showTooltip(bar, tooltipText));
-    bar.addEventListener("mouseleave", hideTooltip);
-    bar.addEventListener("focus", () => showTooltip(bar, tooltipText));
-    bar.addEventListener("blur", hideTooltip);
+    const info = { labelDate, barState, statusLabel, durationText, relatedTitles };
+    bar.addEventListener("mouseenter", () => showPopover(bar, info));
+    bar.addEventListener("mouseleave", hidePopover);
+    bar.addEventListener("focus", () => showPopover(bar, info));
+    bar.addEventListener("blur", hidePopover);
 
     container.appendChild(bar);
+  }
+}
+
+function rerenderAllBars() {
+  updateRangeControls();
+  hidePopover();
+  for (const svcState of cachedServicesState) {
+    renderServiceBars({
+      ...svcState,
+      issues: cachedIssues,
+    });
   }
 }
 
@@ -381,6 +505,18 @@ function runIntroAnimation() {
 async function initStatusPage() {
   runIntroAnimation();
 
+  document.getElementById("range-prev")?.addEventListener("click", () => {
+    windowOffset += 1;
+    rerenderAllBars();
+  });
+
+  document.getElementById("range-next")?.addEventListener("click", () => {
+    if (windowOffset > 0) {
+      windowOffset -= 1;
+      rerenderAllBars();
+    }
+  });
+
   const [summary, issues, ...historyDocs] = await Promise.all([
     fetchWithFallback("history/summary.json", "json"),
     fetch(ISSUES_API, { cache: "no-store" })
@@ -389,7 +525,9 @@ async function initStatusPage() {
     ...SERVICES.map((s) => fetchWithFallback(`history/${s.slug}.yml`, "text")),
   ]);
 
-  const openMaintenanceIssues = (issues || []).filter(
+  cachedIssues = issues || [];
+
+  const openMaintenanceIssues = cachedIssues.filter(
     (i) =>
       !i.pull_request &&
       i.state === "open" &&
@@ -399,6 +537,8 @@ async function initStatusPage() {
   let latestTimestamp = null;
   let hasDown = false;
   let hasMaintenance = openMaintenanceIssues.length > 0;
+
+  cachedServicesState = [];
 
   SERVICES.forEach((svc, idx) => {
     const summaryItem = Array.isArray(summary)
@@ -438,15 +578,16 @@ async function initStatusPage() {
     }
 
     updateServiceRow(svc.slug, state, uptimeText, latencyText);
-    renderServiceBars({
+    cachedServicesState.push({
       slug: svc.slug,
       name: svc.name,
       startDateKey,
       dailyMinutesDown: summaryItem?.dailyMinutesDown || {},
       currentState: state,
-      issues,
     });
   });
+
+  rerenderAllBars();
 
   if (hasDown) {
     setOverview(
@@ -468,7 +609,7 @@ async function initStatusPage() {
     );
   }
 
-  renderIncidents(issues);
+  renderIncidents(cachedIssues);
 }
 
 document.addEventListener("DOMContentLoaded", initStatusPage);

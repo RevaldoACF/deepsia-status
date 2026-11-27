@@ -82,8 +82,61 @@
         </section>
 
         <section aria-labelledby="services-heading" class="section anim-item">
-          <h2 id="services-heading" class="section-title">Services</h2>
-          <ul id="services-list" class="services-list">
+          <div class="services-card">
+            <div class="services-header">
+              <h2 id="services-heading" class="services-header-title">
+                System status
+              </h2>
+              <div class="range-nav" aria-label="Date range">
+                <button
+                  type="button"
+                  id="range-prev"
+                  class="range-btn"
+                  aria-label="Previous 60 days"
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M10 3.5L5.5 8l4.5 4.5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+                <span id="range-label" class="range-label">—</span>
+                <button
+                  type="button"
+                  id="range-next"
+                  class="range-btn"
+                  aria-label="Next 60 days"
+                  disabled
+                >
+                  <svg
+                    viewBox="0 0 16 16"
+                    width="14"
+                    height="14"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M6 3.5L10.5 8 6 12.5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <ul id="services-list" class="services-list">
             <li class="service-row" data-slug="api">
               <div class="service-head">
                 <div class="service-info">
@@ -154,6 +207,7 @@
               </div>
             </li>
           </ul>
+          </div>
         </section>
 
         <section
@@ -175,6 +229,20 @@
       </footer>
     </div>
 
-    <div id="bar-tooltip" class="bar-tooltip" role="tooltip" hidden></div>
+    <div id="bar-popover" class="bar-popover" role="tooltip" hidden>
+      <div class="popover-arrow" aria-hidden="true"></div>
+      <div class="popover-date" id="popover-date"></div>
+      <div class="popover-status-box" id="popover-status-box">
+        <span class="popover-status-left">
+          <span class="popover-icon" id="popover-icon" aria-hidden="true"></span>
+          <span class="popover-status-text" id="popover-status-text"></span>
+        </span>
+        <span class="popover-duration" id="popover-duration"></span>
+      </div>
+      <div class="popover-related" id="popover-related" hidden>
+        <div class="popover-related-label">Related</div>
+        <ul class="popover-related-list" id="popover-related-list"></ul>
+      </div>
+    </div>
   </body>
 </html>

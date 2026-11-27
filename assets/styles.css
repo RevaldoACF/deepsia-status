@@ -337,15 +337,73 @@ main {
   color: var(--dc-text-muted);
 }
 
-/* Services List */
-.services-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Services Card & Date Range Header */
+.services-card {
   border: 1px solid var(--dc-border);
   border-radius: 14px;
   background-color: var(--dc-panel);
   overflow: hidden;
+}
+
+.services-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--dc-border);
+}
+
+.services-header-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--dc-text-strong);
+}
+
+.range-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.range-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 28px;
+  min-block-size: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dc-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.range-btn:hover:not(:disabled) {
+  color: var(--dc-text-strong);
+  background-color: var(--dc-surface);
+}
+
+.range-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.range-label {
+  font-size: 0.8125rem;
+  color: var(--dc-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.services-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .service-row {
@@ -418,19 +476,121 @@ main {
   color: var(--dc-text-muted);
 }
 
-.bar-tooltip {
+.bar-popover {
   position: fixed;
   z-index: 40;
   pointer-events: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background-color: var(--dc-text-strong);
-  color: var(--dc-canvas);
-  font-size: 0.75rem;
+  width: min(290px, calc(100vw - 24px));
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--dc-border);
+  background-color: var(--dc-panel);
+  color: var(--dc-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-popover[hidden] {
+  display: none;
+}
+
+.popover-arrow {
+  position: absolute;
+  top: -5px;
+  left: var(--arrow-x, 50%);
+  width: 9px;
+  height: 9px;
+  background-color: var(--dc-panel);
+  border-top: 1px solid var(--dc-border);
+  border-left: 1px solid var(--dc-border);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.popover-date {
+  font-size: 0.8125rem;
   font-weight: 500;
+  color: var(--dc-text-strong);
+}
+
+.popover-status-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background-color: var(--dc-surface);
+  font-size: 0.8125rem;
+}
+
+.popover-status-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--dc-text-strong);
+}
+
+.popover-icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: var(--dc-text-muted);
+  flex-shrink: 0;
+}
+
+.popover-status-box[data-state="operational"] .popover-icon {
+  background-color: var(--status-up);
+}
+
+.popover-status-box[data-state="maintenance"] .popover-icon,
+.popover-status-box[data-state="degraded"] .popover-icon {
+  background-color: var(--status-maint);
+  border-radius: 2px;
+}
+
+.popover-status-box[data-state="down"] .popover-icon {
+  background-color: var(--status-down);
+}
+
+.popover-duration {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  color: var(--dc-text-muted);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  transform: translate(-50%, -100%);
+}
+
+.popover-related {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.popover-related[hidden] {
+  display: none;
+}
+
+.popover-related-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dc-text-muted);
+}
+
+.popover-related-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--dc-text-strong);
 }
 
 .service-info {
@@ -637,14 +797,16 @@ main {
 /* Forced Colors Mode */
 @media (forced-colors: active) {
   .overview-card,
-  .services-list,
+  .services-card,
   .incident-card,
-  .status-pill {
+  .status-pill,
+  .bar-popover {
     border: 1px solid CanvasText;
   }
 
   .status-dot,
-  .pill-icon {
+  .pill-icon,
+  .popover-icon {
     background-color: CanvasText;
   }
 }

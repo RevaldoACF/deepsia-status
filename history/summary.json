@@ -1,0 +1,38 @@
+[
+  {
+    "name": "API",
+    "url": "https://api.deepsia.my.id/health",
+    "icon": "https://icons.duckduckgo.com/ip3/api.deepsia.my.id.ico",
+    "slug": "api",
+    "status": "up",
+    "uptime": "100.00%",
+    "uptimeDay": "100.00%",
+    "uptimeWeek": "100.00%",
+    "uptimeMonth": "100.00%",
+    "uptimeYear": "100.00%",
+    "time": 820,
+    "timeDay": 820,
+    "timeWeek": 820,
+    "timeMonth": 820,
+    "timeYear": 820,
+    "dailyMinutesDown": {}
+  },
+  {
+    "name": "DeepChat",
+    "url": "https://chat.deepsia.my.id",
+    "icon": "https://icons.duckduckgo.com/ip3/chat.deepsia.my.id.ico",
+    "slug": "chat",
+    "status": "up",
+    "uptime": "100.00%",
+    "uptimeDay": "100.00%",
+    "uptimeWeek": "100.00%",
+    "uptimeMonth": "100.00%",
+    "uptimeYear": "100.00%",
+    "time": 722,
+    "timeDay": 722,
+    "timeWeek": 722,
+    "timeMonth": 722,
+    "timeYear": 722,
+    "dailyMinutesDown": {}
+  }
+]

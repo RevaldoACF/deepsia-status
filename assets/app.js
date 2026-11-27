@@ -89,15 +89,55 @@ function classifyIssue(issue) {
   return null;
 }
 
+function parseIssueMetadata(issue) {
+  const body = issue.body || "";
+  const affectedMatch = body.match(/<!--\s*affected:\s*([^>]+?)\s*-->/i);
+  const startMatch = body.match(/<!--\s*start:\s*([^>]+?)\s*-->/i);
+  const endMatch = body.match(/<!--\s*end:\s*([^>]+?)\s*-->/i);
+
+  const affected = affectedMatch
+    ? affectedMatch[1]
+        .split(",")
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+    : null;
+
+  const cleanBody = body
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .trim();
+
+  return {
+    affected,
+    start: startMatch ? startMatch[1].trim() : null,
+    end: endMatch ? endMatch[1].trim() : null,
+    cleanBody,
+  };
+}
+
 function issueAffectsService(issue, slug, name) {
   const labels = (issue.labels || []).map((l) => l.name.toLowerCase());
-  const text = `${issue.title || ""} ${issue.body || ""}`.toLowerCase();
-  return (
-    labels.includes(slug) ||
-    text.includes(slug) ||
-    text.includes(name.toLowerCase()) ||
-    text.includes(`${slug}.deepsia.my.id`)
+  const serviceLabels = labels.filter((l) =>
+    SERVICES.some((s) => s.slug === l)
   );
+  const { affected } = parseIssueMetadata(issue);
+
+  if (affected) {
+    return affected.includes(slug) || affected.includes("all");
+  }
+
+  if (serviceLabels.length > 0) {
+    return serviceLabels.includes(slug);
+  }
+
+  const title = (issue.title || "").toLowerCase();
+  if (slug === "api") {
+    return /\bapi\b/.test(title) || title.includes("api.deepsia.my.id");
+  }
+  if (slug === "chat") {
+    return /\b(chat|deepchat)\b/.test(title) || title.includes("chat.deepsia.my.id");
+  }
+  return title.includes(name.toLowerCase());
 }
 
 function issueActiveOnDate(issue, dateKey) {
@@ -254,12 +294,9 @@ function renderIncidents(issues) {
     const header = document.createElement("div");
     header.className = "incident-header";
 
-    const link = document.createElement("a");
-    link.className = "incident-title";
-    link.href = issue.html_url;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = issue.title;
+    const titleEl = document.createElement("h3");
+    titleEl.className = "incident-title";
+    titleEl.textContent = issue.title;
 
     const badge = document.createElement("span");
     badge.className = "incident-badge";
@@ -271,18 +308,44 @@ function renderIncidents(issues) {
       badge.textContent = "Active";
     }
 
-    header.append(link, badge);
+    header.append(titleEl, badge);
+    li.append(header);
+
+    const { start, end, cleanBody } = parseIssueMetadata(issue);
+    if (cleanBody) {
+      const desc = document.createElement("p");
+      desc.className = "incident-body";
+      desc.textContent = cleanBody;
+      li.append(desc);
+    }
 
     const time = document.createElement("time");
     time.className = "incident-date";
-    time.dateTime = issue.created_at;
-    time.textContent = new Date(issue.created_at).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    time.dateTime = start || issue.created_at;
+    if (start && end) {
+      const startFmt = new Date(start).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const endFmt = new Date(end).toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      time.textContent = `${startFmt} – ${endFmt}`;
+    } else {
+      time.textContent = new Date(issue.created_at).toLocaleDateString(
+        undefined,
+        {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }
+      );
+    }
 
-    li.append(header, time);
+    li.append(time);
     list.append(li);
   }
 

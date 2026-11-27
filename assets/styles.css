@@ -562,11 +562,14 @@ main {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--dc-text-strong);
-  text-decoration: none;
 }
 
-.incident-title:hover {
-  text-decoration: underline;
+.incident-body {
+  margin: 4px 0 2px;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--dc-text-body, var(--dc-text-muted));
+  white-space: pre-line;
 }
 
 .incident-badge {

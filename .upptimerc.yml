@@ -9,7 +9,7 @@ sites:
     expectedStatusCodes:
       - 200
     maxResponseTime: 5000
-  - name: DeepChat
+  - name: Benthos
     slug: chat
     url: https://chat.deepsia.my.id
     method: GET

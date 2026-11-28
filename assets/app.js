@@ -7,7 +7,7 @@ const HISTORY_DAYS = 60;
 
 const SERVICES = [
   { slug: "api", name: "API" },
-  { slug: "chat", name: "DeepChat" },
+  { slug: "chat", name: "Benthos" },
 ];
 
 let windowOffset = 0;
@@ -156,7 +156,7 @@ function issueAffectsService(issue, slug, name) {
   }
   if (slug === "chat") {
     return (
-      /\b(chat|deepchat)\b/.test(title) || title.includes("chat.deepsia.my.id")
+      /\b(chat|benthos|deepchat)\b/.test(title) || title.includes("chat.deepsia.my.id")
     );
   }
   return title.includes(name.toLowerCase());
